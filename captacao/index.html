@@ -463,6 +463,7 @@ var WHATS   = "556596511275";                              // WhatsApp da capta�
 var ORIGEM  = "site-captacao";                             // marca no fim da mensagem
 var AW_LEAD = "AW-301744687/qfijCPfY9fkcEK-E8Y8B";         // Captação - Avaliação solicitada (site)
 var PUBLICO = "proprietario";                              // esta página é só de captação
+var PAINEL  = "https://script.google.com/macros/s/AKfycbyoJYBpPVXGAa_ODXMDfJODbzWW2HSszkEVyGhUCqrUtwZZWV6JkuGydMAK_J99e9NT7w/exec"; // grava na planilha
 
 /* ════════ disparo unificado: Meta + Google + dataLayer ════════ */
 function ev(nomeMeta, tipoMeta, nomeGoogle, params){
@@ -477,8 +478,18 @@ function ev(nomeMeta, tipoMeta, nomeGoogle, params){
        window.dataLayer.push(Object.assign({event:nomeGoogle}, p)); }catch(e){}
 }
 
+/* ════════ grava na planilha do painel (aba CAPTACAO) ════════ */
+function grava(dados){
+  try{
+    var corpo = new Blob([JSON.stringify(dados)], {type:"text/plain;charset=UTF-8"});
+    if(navigator.sendBeacon){ navigator.sendBeacon(PAINEL, corpo); return; }
+    fetch(PAINEL, {method:"POST", mode:"no-cors", keepalive:true, body:JSON.stringify(dados)});
+  }catch(e){}
+}
+
 /* ════════ público de proprietários — marca quem abriu a página ════════ */
 ev("ViewContent", "padrao", "view_captacao", {content_name:"pagina-captacao"});
+grava({tipo:"evento", evento:"view"});
 
 /* ════════ de onde veio o clique (UTM da campanha) ════════ */
 function utm(){
@@ -499,6 +510,7 @@ document.querySelectorAll("[data-ev]").forEach(function(el){
     var nome = el.getAttribute("data-ev");
     if(nome === "google_avaliacoes"){
       ev("CaptacaoProvaSocial", "custom", "clique_avaliacoes", {botao:nome});
+      grava({tipo:"evento", evento:"prova_social"});
     } else if(nome !== "form_whatsapp"){
       ev("CaptacaoInteresse", "custom", "clique_cta", {botao:nome});
     }
@@ -511,6 +523,7 @@ document.querySelectorAll("[data-ev]").forEach(function(el){
   function marcar(motivo){
     if(marcado) return; marcado = true;
     ev("CaptacaoEngajado", "custom", "captacao_engajado", {motivo:motivo});
+    grava({tipo:"evento", evento:"engajado"});
   }
   window.addEventListener("scroll", function(){
     var h = document.documentElement;
@@ -545,6 +558,13 @@ f.addEventListener("submit", function(e){
   });
   try{ if(window.gtag){ gtag("event","conversion",{send_to:AW_LEAD, value:1.0, currency:"BRL"}); } }catch(e){}
 
+  /* planilha: grava ANTES de abrir o WhatsApp — o lead não depende do envio da mensagem */
+  var p = new URLSearchParams(location.search);
+  grava({tipo:"lead", nome:nome, fone:fone, bairro:bairro, imovel:tipo,
+         quartos:quartos, prazo:quando,
+         origem:(p.get("utm_source")||"direto"), termo:(p.get("utm_term")||p.get("keyword")||""),
+         pagina:"/captacao"});
+
   var m = "Olá! Quero a avaliação gratuita do meu imóvel."
         + "\n\nNome: " + nome
         + "\nWhatsApp: " + fone
@@ -568,7 +588,7 @@ document.getElementById("fone").addEventListener("input", function(){
 /* link do rodapé */
 var wr = document.getElementById("waRodape");
 wr.href = "https://wa.me/" + WHATS + "?text=" + encodeURIComponent("Olá! Vim pela página de avaliação do site." + utm());
-wr.addEventListener("click", function(){ whats("rodape"); });
+wr.addEventListener("click", function(){ whats("rodape"); grava({tipo:"evento", evento:"whatsapp"}); });
 
 /* os dois botões de WhatsApp que levam ao formulário contam como interesse;
    o contato direto é o do rodapé. */
