@@ -139,6 +139,32 @@
     a.btn{transition:none}a.btn:active{transform:none}a.principal{animation:none}
   }
 </style>
+
+<!-- ══ Meta Pixel — Condado Imobiliária ══ -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','600164904490498');
+fbq('track','PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=600164904490498&ev=PageView&noscript=1"></noscript>
+
+<!-- ══ Google tag (Google Ads) ══ -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-301744687"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'AW-301744687');
+</script>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"RealEstateAgent","name":"Condado Imobiliária","url":"https://condado.cuiaba.br/","telephone":"+55 65 99627-2005","areaServed":[{"@type":"City","name":"Cuiabá"},{"@type":"Place","name":"Goiabeiras, Cuiabá"},{"@type":"Place","name":"Santa Rosa, Cuiabá"},{"@type":"Place","name":"Duque de Caxias, Cuiabá"}],"address":{"@type":"PostalAddress","addressLocality":"Cuiabá","addressRegion":"MT","addressCountry":"BR"},"identifier":"CRECI-MT J 21845","sameAs":["https://www.instagram.com/condado.imob/","https://www.youtube.com/channel/UCVVluuimPCfUdelSu60oTLg","https://maps.google.com/?cid=15259505743002783293","https://condadoimob.com.br/"],"knowsAbout":["venda de imóveis em Cuiabá","avaliação de imóveis","apartamentos no Goiabeiras","casas em condomínio em Cuiabá"]}
+</script>
 </head>
 <body>
 <main class="page">
@@ -233,15 +259,44 @@
 
 </main>
 
-<!-- Rastreio: cada botão tem data-ev próprio. Pixel da Meta ou GA entram aqui embaixo. -->
+<!-- Rastreio: cada botão tem data-ev próprio. Pixel da Meta e tag do Google carregam no <head>. -->
 <script>
-  document.querySelectorAll('[data-ev]').forEach(function (el) {
-    el.addEventListener('click', function () {
-      var nome = el.getAttribute('data-ev');
-      if (window.fbq) { fbq('trackCustom', 'ClickLinkBio', { botao: nome }); }
-      if (window.gtag) { gtag('event', 'click_link_bio', { botao: nome }); }
-    });
+/* ════════ CONFIGURAÇÃO — mexer só aqui ════════ */
+var PAINEL = "https://script.google.com/macros/s/AKfycbyPXBNzqc353qtJo7W_AGKaU6mMeDq73eMplq5IynKnmO5c9efJJxD_O0FLVCFgySxSWA/exec"; // mesma implantação da /captacao
+var PAGINA = "/";        // bio
+var CATEG  = "bio";      // content_category em todo evento
+
+/* ════════ disparo unificado: Meta + Google + dataLayer ════════ */
+function ev(nomeMeta, tipoMeta, nomeGoogle, params){
+  var p = Object.assign({content_category: CATEG}, params || {});
+  try{ if(window.fbq){ fbq(tipoMeta === "custom" ? "trackCustom" : "track", nomeMeta, p); } }catch(e){}
+  try{ if(window.gtag){ gtag("event", nomeGoogle, p); } }catch(e){}
+  try{ window.dataLayer = window.dataLayer || [];
+       window.dataLayer.push(Object.assign({event:nomeGoogle}, p)); }catch(e){}
+}
+
+/* ════════ grava na planilha do painel (mesmo webhook da /captacao) ════════ */
+function grava(dados){
+  try{
+    dados = Object.assign({pagina: PAGINA}, dados);
+    var corpo = new Blob([JSON.stringify(dados)], {type:"text/plain;charset=UTF-8"});
+    if(navigator.sendBeacon){ navigator.sendBeacon(PAINEL, corpo); return; }
+    fetch(PAINEL, {method:"POST", mode:"no-cors", keepalive:true, body:JSON.stringify(dados)});
+  }catch(e){}
+}
+
+/* ════════ abriu a bio ════════ */
+ev("ViewContent", "padrao", "view_bio", {content_name:"link-bio"});
+grava({tipo:"evento", evento:"bio_view"});
+
+/* ════════ cliques marcados — um evento por botão ════════ */
+document.querySelectorAll('[data-ev]').forEach(function (el) {
+  el.addEventListener('click', function () {
+    var nome = el.getAttribute('data-ev');
+    ev("ClickLinkBio", "custom", "click_link_bio", {botao: nome});
+    grava({tipo:"evento", evento:"bio_" + nome});
   });
+});
 </script>
 </body>
 </html>
